@@ -7,5 +7,7 @@
     </content>
     <orderEntry type="jdk" jdkName="10" jdkType="JavaSDK" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="src" level="project" />
+    <orderEntry type="library" name="RemoteControlPC-Libraries" level="project" />
   </component>
 </module>
