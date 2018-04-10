@@ -1,13 +1,20 @@
 package com.company.PcControl;
 
+import com.company.PcControl.file.FileHead;
 import javafx.application.Platform;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 
 import java.awt.*;
+import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.ArrayList;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 
@@ -160,6 +167,22 @@ public class Server1 {
                                     disconnect();
                                     cond = false;
                                     break;
+                                case "FILE_GET":
+                                    FileHead tempHead = FileHead.readFileHead(Main.objectInputStream) ;  // FileHead clicked by the user
+                                    System.out.println(tempHead.getPath()) ;
+                                    if(tempHead.isDir()) {                          // Checks if it is a directory
+                                        sendFilesList(Main.objectOutputStream, Main.objectInputStream, tempHead.getPath()) ;
+                                    }
+                                    else {
+                                        sendBufFile(Main.outputStream, tempHead.getPath()) ;
+                                    }
+                                    break;
+                                case "GET_FILE_LIST":
+                                    showMessage("Sending list of file");
+                                    System.out.println("Sending file list");
+                                    sendFilesList(Main.objectOutputStream,Main.objectInputStream,"~/");
+                                    System.out.println("Data Sent");
+                                    break;
 
                             }
                         } else
@@ -184,6 +207,63 @@ public class Server1 {
             e.printStackTrace();
         }
 
+    }
+
+    /************************** TO SEND THE FILE
+     *
+     * @param outputStream
+     * @param filePath
+     * @throws IOException
+     *
+     * Uses Data streams to transfer
+     * Creates a byte array and fills it with the file's bytes
+     * Writes the full data to output stream
+     */
+    public static void sendBufFile(OutputStream outputStream, String filePath) throws IOException {
+        File file = new File(filePath) ;
+        DataInputStream dataInputStream = new DataInputStream(new BufferedInputStream(new FileInputStream(file))) ;
+        DataOutputStream dataOutputStream = new DataOutputStream(outputStream) ;
+
+        byte[] bytes = new byte[(int) file.length()] ;
+        System.out.println(bytes.length) ;
+        dataInputStream.readFully(bytes, 0, bytes.length) ;
+
+        dataOutputStream.write(bytes, 0, bytes.length) ;
+        dataOutputStream.flush() ;
+
+        dataOutputStream.close() ;
+    }
+
+
+
+    /******************************* TO SEND THE FILE LIST
+     *
+     * @param objectOutputStream
+     * @param objectInputStream
+     * @param parentDir
+     * @throws IOException
+     * @throws ClassNotFoundException
+     *
+     * Receives the file list at the given path
+     * Checks if it is null
+     * Sends each element of the list
+     *
+     */
+    public static void sendFilesList(ObjectOutputStream objectOutputStream, ObjectInputStream objectInputStream, String parentDir) throws IOException, ClassNotFoundException {
+        ArrayList<FileHead> fileHeadArrayList = FileList.getFileHeadArrayList(parentDir) ;
+        if(fileHeadArrayList != null) {
+            objectOutputStream.writeObject("Not Null") ;
+            objectOutputStream.writeInt(fileHeadArrayList.size());
+
+            for(int i = 0; i < fileHeadArrayList.size(); i++) {
+                fileHeadArrayList.get(i).sendFileHead(objectOutputStream) ;
+                System.out.println(fileHeadArrayList.size());
+            }
+            FileList.print(fileHeadArrayList) ;
+
+        } else {
+            objectOutputStream.writeObject("Null") ;
+        }
     }
 
     private void disconnect() {
